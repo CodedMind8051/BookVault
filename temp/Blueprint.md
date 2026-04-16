@@ -21,7 +21,7 @@
 ### Register User  
 
 - Take username, email, mobile number, password, address, avatar image  
-- Also take category of user from these three categories ***(Student, Employee, General)***  
+- Also take category of user from these three categories ***(Student, Employee, General)*** ***(default="general)"***
 - Check if all required fields are given or not  
 - If user does not provide an avatar image then use default avatar image  
 - Check password strength and email format  

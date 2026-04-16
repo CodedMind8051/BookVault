@@ -17,7 +17,9 @@ function fileFilter(req, file, cb) {
     if (allowedTypes.includes(file?.mimetype)) {
         cb(null, true)
     } else {
-        cb(`Only this file types in allowed ${allowedTypes.join(" , ").replaceAll("image/","")}`, false)
+        const error = new Error(`Only this file types in allowed ${allowedTypes.join(" , ").replaceAll("image/","")}`)
+        error.code = "INVALID_FILE_TYPE"
+        cb(error, false)
     }
 }
 
