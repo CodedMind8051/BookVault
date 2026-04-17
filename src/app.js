@@ -28,15 +28,15 @@ app.use(`${BaseEndPoint}/users`, userRoute)
 
 //handle error 
 app.use((err, req, res, next) => {
-    console.log(err)
+
     if (!res.headersSent) {
         DeleteLocalSaveImgFile(req.file?.path)
         return res.status(400).json(
-            err?.code === "LIMIT_FILE_SIZE" ? "File too large (max 7MB)" : err?.code === "INVALID_FILE_TYPE" ? err?.message : err?.message || err?.code || "Something went wrong."
+            err?.code === "LIMIT_FILE_SIZE" ? "File too large (max 7MB)" : err?.code === "INVALID_FILE_TYPE" ? err?.message : err?.ShowToUser ? err?.message : "Something went wrong."
         )
     }
 
-    console.log(err?.message || err?.code || err )
+    console.log(err?.message || err?.code || err)
 
 })
 
