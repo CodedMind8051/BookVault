@@ -23,7 +23,6 @@ const userSchema = new Schema(
         password: {
             type: String,
             required: true,
-            trim: true,
         },
         mobileNumber: {
             type: Number,
@@ -39,9 +38,9 @@ const userSchema = new Schema(
             type: String,
             required: true,
         },
-        avatarImagePublicId:{
-              type: String,
-              required: true,
+        avatarImagePublicId: {
+            type: String,
+            required: true,
         },
         refreshToken: {
             type: String,
@@ -70,6 +69,12 @@ userSchema.pre("save", async function () {
     if (!this.isModified("password")) return
     this.password = bcrypt.hashSync(this.password, 15)
 })
+
+userSchema.methods.CheckPassword = async function (password) {
+    const VerifiedPassword = await bcrypt.compareSync(password, this.password)
+
+    return VerifiedPassword
+}
 
 
 userSchema.methods.generateAccessToken = async function () {

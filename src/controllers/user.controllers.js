@@ -6,41 +6,48 @@ import validator from "validator"
 import { User } from "../models/user.model.js"
 import { File_UploadToCloudinary, File_DeleteToCloudinary } from "../utils/cloudinary.utils.js"
 import { CookiesOptions, CloudinaryFolderPathForUserProfileImages } from "../constants.js"
+import jwt from "jsonwebtoken"
 
 
 
 
 const generate_Access_Refresh_Token = async (userId) => {
 
-    const user = await User.findById(userId)
-    const AccessToken = await user.generateAccessToken()
-    const RefreshToken = await user.generateRefreshToken()
 
-    if (!AccessToken || !RefreshToken) {
-        throw new ApiError("500", "Something went wrong during generating access and refresh token , please try again.", true)
+    try {
+
+        const user = await User.findById(userId)
+        const AccessToken = await user.generateAccessToken()
+        const RefreshToken = await user.generateRefreshToken()
+
+        if (!AccessToken || !RefreshToken) {
+            throw new ApiError("500", "Something went wrong during generating access and refresh token , please try again.", true)
+        }
+
+        user.refreshToken = RefreshToken
+        user.save({ validateBeforeSave: false })
+
+        return { AccessToken, RefreshToken }
+    } catch (error) {
+        return null
     }
-
-    user.refreshToken = RefreshToken
-    user.save({ validateBeforeSave: false })
-
-    return { AccessToken, RefreshToken }
 
 }
 
 const registerUser = asyncHandler(async (req, res) => {
 
-    const { userName, email, password, mobileNumber, address, category = "general" } = req.body
+    const { userName, email, password, mobileNumber, address, category = "general" } = req?.body
     const avatarImageLocalPath = req?.file?.path
 
     if (!avatarImageLocalPath) {
-        throw new ApiError(400, "Avatar image is required.")
+        throw new ApiError(400, "Avatar image is required.", true)
     }
 
 
 
-    if ([userName, email, password, mobileNumber, address].some((field) => !field || field?.trim() === "")) {
+    if ([userName, email, password, mobileNumber, address].some((field) => !field || field?.toString()?.trim() === "")) {
         DeleteLocalSaveImgFile(avatarImageLocalPath)
-        throw new ApiError(400, "All fields are required." , true)
+        throw new ApiError(400, "All fields are required.", true)
     }
 
     if (!validator.isEmail(email) || !validator.isMobilePhone(mobileNumber.toString()) || password.trim().length < 8) {
@@ -66,7 +73,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (userExisted) {
         DeleteLocalSaveImgFile(avatarImageLocalPath)
-        throw new ApiError(400, "User with email or username already exists." , true)
+        throw new ApiError(400, "User with email or username already exists.", true)
     }
 
 
@@ -74,7 +81,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (!AvatarImageUrl) {
         DeleteLocalSaveImgFile(avatarImageLocalPath)
-        throw new ApiError(500, "Avatar image is not uploaded successfully to cloud  server , please try again." , true)
+        throw new ApiError(500, "Avatar image is not uploaded successfully to cloud  server , please try again.", true)
     }
 
     const CreatedUser = await User.create({
@@ -98,11 +105,13 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const { AccessToken, RefreshToken } = await generate_Access_Refresh_Token(CreatedUser._id)
 
-    res
+    const user = await User.findById(CreatedUser?._id).select("-password -refreshToken -bannedStatus")
+
+    return res
         .status(200)
         .cookie("accessToken", AccessToken, CookiesOptions)
         .cookie("refreshToken", RefreshToken, CookiesOptions)
-        .json(new ApiResponse(200, "", "User registered successfully."))
+        .json(new ApiResponse(200, { user: user }, "User registered successfully."))
 
 
 }
@@ -110,5 +119,78 @@ const registerUser = asyncHandler(async (req, res) => {
 )
 
 
+const loginUser = asyncHandler(async (req, res) => {
 
-export { registerUser }
+    const { Username_OR_Email, password } = req?.body
+
+    if ([Username_OR_Email, password].some((field) => !field || field?.toString()?.trim() === "")) {
+        throw new ApiError(400, "All filed are required.", true)
+    }
+
+    const ExistedUser = await User.findOne({
+        $or: [{ userName: Username_OR_Email?.toString()?.trim().toLowerCase() }, { email: Username_OR_Email?.toString()?.trim() }]
+    })
+
+    if (!ExistedUser) {
+        throw new ApiError(400, "User with this username or email not exist", true)
+    }
+
+    if (ExistedUser.bannedStatus) {
+        throw new ApiError(400, "You are banned by the admin ", true)
+    }
+
+    const VerifiedPassword = await ExistedUser.CheckPassword(password)
+
+    if (!VerifiedPassword) {
+        throw new ApiError(400, "Wrong password , please enter correct password and try again.", true)
+    }
+
+
+    const { AccessToken, RefreshToken } = await generate_Access_Refresh_Token(ExistedUser?._id)
+
+    const loggedInUser = await User.findById(ExistedUser?._id).select("-password -refreshToken -bannedStatus")
+
+    return res
+        .status(200)
+        .cookie("accessToken", AccessToken, CookiesOptions)
+        .cookie("refreshToken", RefreshToken, CookiesOptions)
+        .json(new ApiResponse(200, { user: loggedInUser }, "User login successfully."))
+
+
+
+})
+
+const RenewAccessToken = asyncHandler(async (req, res) => {
+
+
+    const IncomingRefreshToken = req?.signedCookies?.refreshToken || req?.cookies?.refreshToken
+
+
+    if (!IncomingRefreshToken || IncomingRefreshToken.trim() === "") {
+        throw new ApiError(400, "Unauthorized request.", true)
+    }
+
+    const DecodedToken = await jwt.verify(IncomingRefreshToken, process.env.JWT_RefreshToken_SECRET_KEY)
+
+    const user = await User.findById(DecodedToken?.userId).select("-password")
+
+    if (!user || IncomingRefreshToken !== user?.refreshToken || user?.bannedStatus) {
+        let error = user?.bannedStatus ? "You are banned by the admin." : "Unauthorized request."
+        throw new ApiError(400, error, true)
+    }
+
+    const { AccessToken, RefreshToken } = await generate_Access_Refresh_Token(user._id)
+
+    return res
+        .status(200)
+        .cookie("accessToken", AccessToken, CookiesOptions)
+        .cookie("refreshToken", RefreshToken, CookiesOptions)
+        .json(
+            new ApiResponse(200, "", "Renew access token successfully")
+        )
+
+})
+
+
+
+export { registerUser, loginUser, RenewAccessToken }

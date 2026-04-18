@@ -17,26 +17,25 @@ app.use(cookieParser(process.env.COOKIE_SECRET_KEY))
 
 
 //routes import 
-
 import userRoute from "./routes/user.routes.js"
 
 
 //declare routes 
-
 app.use(`${BaseEndPoint}/users`, userRoute)
 
 
 //handle error 
 app.use((err, req, res, next) => {
 
+    !err.ShowToUser ? console.error(err) : null
+
     if (!res.headersSent) {
         DeleteLocalSaveImgFile(req.file?.path)
-        return res.status(400).json(
-            err?.code === "LIMIT_FILE_SIZE" ? "File too large (max 7MB)" : err?.code === "INVALID_FILE_TYPE" ? err?.message : err?.ShowToUser ? err?.message : "Something went wrong."
+        return res.status(err?.statusCode || 500 ).json(
+            err?.code === "LIMIT_FILE_SIZE" ? { statusCode: 400, message: "File too large (max 7MB)", success: false } : err?.code === "INVALID_FILE_TYPE" ? { statusCode: 400, message: err?.message, success: false } : err?.ShowToUser ? { statusCode: 400, message: err?.message, success: false } : { statusCode: 500, message: "Something went wrong , please try again.", success: false }
         )
     }
 
-    console.log(err?.message || err?.code || err)
 
 })
 
