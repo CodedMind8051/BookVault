@@ -8,7 +8,7 @@ import { ApiError } from "../utils/ApiError.utils.js"
 const AuthenticateJwtToken = async (req, _, next) => {
 
     try {
-        const { accessToken } = req?.cookies
+        const { accessToken } = req?.signedCookies || req?.cookies
 
         if (!accessToken || accessToken.trim() === "") {
             throw new ApiError(400, "Unauthorized request", true)
@@ -26,8 +26,9 @@ const AuthenticateJwtToken = async (req, _, next) => {
         req.user = user
 
         next()
+
     } catch (err) {
-        return err
+        next(err)
     }
 }
 

@@ -19,7 +19,7 @@ const File_UploadToCloudinary = async (localFilePath, FolderPath_WhereToSave) =>
                 resource_type: "auto",
                 folder: `BookVault/${FolderPath_WhereToSave}`
             })
-        return { AvatarImageUrl: CloudinaryResponse?.secure_url , AvatarImagePublicId: CloudinaryResponse?.public_id }
+        return { ImageUrl: CloudinaryResponse?.secure_url, ImagePublicId: CloudinaryResponse?.public_id }
     } catch (error) {
         return error?.message || error?.code
     } finally {
@@ -40,7 +40,7 @@ const File_DeleteToCloudinary = async (PublicID) => {
         return CloudinaryResponse
     } catch (error) {
         return error?.message || error?.code
-    } 
+    }
 }
 
 

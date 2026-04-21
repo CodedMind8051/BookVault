@@ -11,7 +11,8 @@ const userSchema = new Schema(
             unique: true,
             lowercase: true,
             trim: true,
-            index: true
+            index: true,
+            maxlength: 100
         },
         email: {
             type: String,
@@ -25,7 +26,7 @@ const userSchema = new Schema(
             required: true,
         },
         mobileNumber: {
-            type: Number,
+            type: String,
             required: true,
             trim: true,
         }
@@ -58,6 +59,10 @@ const userSchema = new Schema(
             type: String,
             enum: ["student", "employee", "general"],
             default: "general"
+        },
+        isAdmin: {
+            type: Boolean,
+            default: false
         }
     },
     {
@@ -83,6 +88,7 @@ userSchema.methods.generateAccessToken = async function () {
             userId: this._id,
             userName: this.userName,
             email: this.email,
+            isAdmin: this.isAdmin
         },
         process.env.JWT_AccessToken_SECRET_KEY,
         {

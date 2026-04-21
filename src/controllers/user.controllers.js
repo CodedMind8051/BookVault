@@ -25,7 +25,7 @@ const generate_Access_Refresh_Token = async (userId) => {
         }
 
         user.refreshToken = RefreshToken
-        user.save({ validateBeforeSave: false })
+        await user.save({ validateBeforeSave: false })
 
         return { AccessToken, RefreshToken }
     } catch (error) {
@@ -77,9 +77,9 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
 
-    const { AvatarImageUrl, AvatarImagePublicId } = await File_UploadToCloudinary(avatarImageLocalPath, CloudinaryFolderPathForUserProfileImages)
+    const { ImageUrl, ImagePublicId } = await File_UploadToCloudinary(avatarImageLocalPath, CloudinaryFolderPathForUserProfileImages)
 
-    if (!AvatarImageUrl) {
+    if (!ImageUrl) {
         DeleteLocalSaveImgFile(avatarImageLocalPath)
         throw new ApiError(500, "Avatar image is not uploaded successfully to cloud  server , please try again.", true)
     }
@@ -90,8 +90,8 @@ const registerUser = asyncHandler(async (req, res) => {
         password,
         mobileNumber,
         address: address,
-        avatarImage: AvatarImageUrl,
-        avatarImagePublicId: AvatarImagePublicId,
+        avatarImage: ImageUrl,
+        avatarImagePublicId: ImagePublicId,
         category
     })
 
@@ -99,7 +99,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (!CreatedUser) {
         DeleteLocalSaveImgFile(avatarImageLocalPath)
-        await File_DeleteToCloudinary(AvatarImagePublicId)
+        await File_DeleteToCloudinary(ImagePublicId)
         throw new ApiError(500, "User is not created successfully , please try again.", true)
     }
 
