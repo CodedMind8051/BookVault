@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate";
 
 const BookSchema = new Schema({
     BookName: {
@@ -15,7 +16,6 @@ const BookSchema = new Schema({
     Category: {
         type: String,
         required: true,
-        lowercase: true,
         index: true
     },
     Description: {
@@ -53,5 +53,7 @@ const BookSchema = new Schema({
         timestamps: true
     }
 )
+
+BookSchema.plugin(mongoosePaginate)
 
 export const Book = mongoose.model("Book", BookSchema)

@@ -19,11 +19,13 @@ app.use(cookieParser(process.env.COOKIE_SECRET_KEY))
 //routes import 
 import userRoute from "./routes/user.routes.js"
 import adminRoute from "./routes/admin.routes.js"
+import bookRoute from "./routes/book.routes.js"
 
 
 //declare routes 
 app.use(`${BaseEndPoint}/users`, userRoute)
 app.use(`${BaseEndPoint}/admin`, adminRoute)
+app.use(`${BaseEndPoint}/book`, bookRoute)
 
 
 //handle error 

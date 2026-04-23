@@ -110,7 +110,7 @@ const AdminDeleteBooks = asyncHandler(async (req, res) => {
 
 const updateUserBanStatus = asyncHandler(async (req, res) => {
     
-    const { userId } = req?.params || req?.body
+    const { userId } = req?.params 
 
     if (!userId) {
         throw new ApiError(400, "Please provide user id.", true)

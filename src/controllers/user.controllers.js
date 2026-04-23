@@ -6,7 +6,8 @@ import validator from "validator"
 import { User } from "../models/user.model.js"
 import { File_UploadToCloudinary, File_DeleteToCloudinary } from "../utils/cloudinary.utils.js"
 import { CookiesOptions, CloudinaryFolderPathForUserProfileImages } from "../constants.js"
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
+
 
 
 
