@@ -17,7 +17,6 @@ const borrowSchema = new Schema({
 
     borrowDate: {
         type: Date,
-        default: Date.now,
         required: true
     },
 
@@ -30,11 +29,10 @@ const borrowSchema = new Schema({
         type: Date
     },
 
-    copiesBorrowed: {
+    dueDateExtensionCount: {
         type: Number,
-        default: 1,
-        min: 1,
-        max: 2
+        min: 0,
+        max: 1
     },
 
     status: {

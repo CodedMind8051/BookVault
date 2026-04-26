@@ -53,6 +53,7 @@ const userSchema = new Schema(
         numberOfBooksBorrowed: {
             type: Number,
             default: 0,
+            min:0,
             max: 7,
         },
         category: {

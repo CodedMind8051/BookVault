@@ -7,6 +7,7 @@ import { User } from "../models/user.model.js"
 import { File_UploadToCloudinary, File_DeleteToCloudinary } from "../utils/cloudinary.utils.js"
 import { CookiesOptions, CloudinaryFolderPathForUserProfileImages } from "../constants.js"
 import jwt from "jsonwebtoken";
+import { Borrow } from "../models/borrow.model.js"
 
 
 
@@ -192,6 +193,33 @@ const RenewAccessToken = asyncHandler(async (req, res) => {
 
 })
 
+const fetchBorrowHistory = asyncHandler(async (req, res) => {
+    const { page } = req?.query || req?.body
+    const user = req?.user
+
+    if (!page) {
+        throw new ApiError(400, "page number must required.", true)
+    }
+
+    const PaginateOptions = {
+        page: parseInt(page),
+        limit: 20,
+        select: "-userId"
+    }
+
+    const BorrowHistory = await Borrow.paginate({
+        userId: user._id
+    }, PaginateOptions)
+
+    if (!BorrowHistory) {
+        throw new ApiError(500, "Failed to fetch borrowed history , please try again.", true)
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { BorrowHistory }, "Your are not borrowed any book yet"))
 
 
-export { registerUser, loginUser, RenewAccessToken }
+})
+
+export { registerUser, loginUser, RenewAccessToken, fetchBorrowHistory }
