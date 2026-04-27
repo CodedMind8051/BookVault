@@ -8,6 +8,8 @@ import { File_UploadToCloudinary, File_DeleteToCloudinary } from "../utils/cloud
 import { CookiesOptions, CloudinaryFolderPathForUserProfileImages } from "../constants.js"
 import jwt from "jsonwebtoken";
 import { Borrow } from "../models/borrow.model.js"
+import mongoose from "mongoose"
+import { ReviewRating } from "../models/reviewAndrating.model.js"
 
 
 
@@ -204,12 +206,18 @@ const fetchBorrowHistory = asyncHandler(async (req, res) => {
     const PaginateOptions = {
         page: parseInt(page),
         limit: 20,
-        select: "-userId"
+        select: "-userId",
+        populate: {
+            path: "bookId",
+            select: "BookName Author BookImage AvgRating"
+        },
+        sort: { createdAt: -1 }
     }
 
     const BorrowHistory = await Borrow.paginate({
         userId: user._id
     }, PaginateOptions)
+
 
     if (!BorrowHistory) {
         throw new ApiError(500, "Failed to fetch borrowed history , please try again.", true)
@@ -222,4 +230,111 @@ const fetchBorrowHistory = asyncHandler(async (req, res) => {
 
 })
 
-export { registerUser, loginUser, RenewAccessToken, fetchBorrowHistory }
+const WriteReview = asyncHandler(async (req, res) => {
+    const { bookId } = req?.params
+    const { review } = req?.body
+    const user = req?.user
+
+    if (!bookId || !mongoose.Types.ObjectId.isValid(bookId)) {
+        throw new ApiError(400, "Invalid book id", true)
+    }
+
+    if (!review || review.toString().trim() === "") {
+        throw new ApiError(400, "Review must required", true)
+    }
+
+    const ExistedReview = await ReviewRating.findOne({
+        $and: [
+            { BookId: bookId },
+            { userId: user?._id }
+        ]
+    })
+
+    if (ExistedReview) {
+        if (ExistedReview.review.length >= 5) {
+            throw new ApiError(400, "You can only give 5 reviews to a single book", true)
+        }
+
+        ExistedReview.review.push(review.toString())
+
+        const savedReview = await ExistedReview.save({ validateBeforeSave: false })
+
+        if (!savedReview) {
+            throw new ApiError(500, "Something went wrong during review submitting, please try again.", true)
+        }
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, { review: ExistedReview?.review }, "Review submitted successfully"))
+
+    }
+
+    const CreatedReview = await ReviewRating.create({
+        userId: user?._id,
+        BookId: bookId,
+        review: [review.toString()]
+    })
+
+    if (!CreatedReview) {
+        throw new ApiError(500, "Something went wrong during review submitting, please try again.", true)
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { review: CreatedReview?.review }, "Review submitted successfully."))
+
+})
+
+const AddRating = asyncHandler(async (req, res) => {
+
+    const { bookId } = req?.params
+    const { rating } = req?.body
+    const user = req?.user
+
+    if (!bookId || !mongoose.Types.ObjectId.isValid(bookId)) {
+        throw new ApiError(400, "Invalid book id", true)
+    }
+
+    if (!rating || typeof rating !== "number" || rating < 1 || rating > 5) {
+        throw new ApiError(400, "Rating must be a number between 1 and 5", true)
+    }
+
+    const ExistedRating = await ReviewRating.findOne({
+        $and: [
+            { BookId: bookId },
+            { userId: user?._id }
+        ]
+    })
+
+    if (ExistedRating) {
+        ExistedRating.rating = rating
+
+        const savedRating = await ExistedRating.save({ validateBeforeSave: false })
+
+        if (!savedRating) {
+            throw new ApiError(500, "Something went wrong during rating submitting, please try again.", true)
+        }
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, { rating: ExistedRating?.rating }, "Rating updated successfully."))
+
+    }
+
+    const CreatedRating = await ReviewRating.create({
+        userId: user?._id,
+        BookId: bookId,
+        rating: rating
+    })
+
+    if (!CreatedRating) {
+        throw new ApiError(500, "Something went wrong during rating submitting, please try again.", true)
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { rating: CreatedRating?.rating }, "Rating submitted successfully."))
+
+})
+
+export { registerUser, loginUser, RenewAccessToken, fetchBorrowHistory, WriteReview, AddRating }

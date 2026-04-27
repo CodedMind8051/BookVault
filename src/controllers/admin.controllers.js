@@ -82,7 +82,7 @@ const AdminAddBooks = asyncHandler(async (req, res) => {
 
 const AdminDeleteBooks = asyncHandler(async (req, res) => {
 
-    const { BookId } = req?.params || req?.body
+    const { BookId } = req?.params
 
     if (!BookId) {
         throw new ApiError(400, "Please provide the book id", true)
@@ -109,8 +109,8 @@ const AdminDeleteBooks = asyncHandler(async (req, res) => {
 })
 
 const updateUserBanStatus = asyncHandler(async (req, res) => {
-    
-    const { userId } = req?.params 
+
+    const { userId } = req?.params
 
     if (!userId) {
         throw new ApiError(400, "Please provide user id.", true)
@@ -140,4 +140,45 @@ const updateUserBanStatus = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, { user: updatedUser }, "updated User Ban Status successfully."))
 })
 
-export { AdminAddBooks, AdminDeleteBooks, updateUserBanStatus } 
+const GetBorrowersList = asyncHandler(async (req, res) => {
+
+    const { BookId } = req?.params
+    const { page } = req?.query
+
+    if (!BookId) {
+        throw new ApiError(400, "Please provide the book id", true)
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(BookId)) {
+        throw new ApiError(400, "invalid book id.", true)
+    }
+    if (!page) {
+        throw new ApiError(400, "page number must required.", true)
+    }
+
+    const PaginateOptions = {
+        page: parseInt(page),
+        limit: 20,
+        select: "-bookId -__v",
+        sort: { createdAt: -1 },
+        populate: {
+            path: "userId",
+            select: "userName email avatarImage numberOfBooksBorrowed bannedStatus"
+        }
+    }
+
+
+    const borrowersList = await Borrow.paginate({
+        bookId: BookId
+    }, PaginateOptions,)
+
+    if (!borrowersList) {
+        throw new ApiError(500, "Failed to fetch borrowers list , please try again.", true)
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { borrowers: borrowersList }, "Borrowers list fetched successfully."))
+})
+
+export { AdminAddBooks, AdminDeleteBooks, updateUserBanStatus, GetBorrowersList } 

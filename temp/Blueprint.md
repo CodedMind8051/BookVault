@@ -12,7 +12,7 @@
 
 - Admin system or API  
   - Admin can add, delete books  
-  - See which user borrows which books  
+  - See which book is borrowed by which user  
   - Ban user  
 
 

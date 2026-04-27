@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js";
-import { AdminAddBooks , AdminDeleteBooks , updateUserBanStatus } from "../controllers/admin.controllers.js"
+import { AdminAddBooks, AdminDeleteBooks, updateUserBanStatus, GetBorrowersList } from "../controllers/admin.controllers.js"
 import { AuthenticateJwtToken } from "../middlewares/jwtAuth.middleware.js";
 import { isAdmin } from "../middlewares/isAdminCheck.middleware.js";
 
@@ -26,6 +26,11 @@ router.route("/updateUserBanStatus/:userId").patch(
     updateUserBanStatus
 )
 
+router.route("/borrowers/:BookId").get(
+    AuthenticateJwtToken,
+    isAdmin,
+    GetBorrowersList
+)
 
 
 

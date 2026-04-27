@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { AccessTokenExpiresDate, RefreshTokenExpiresDate } from "../constants.js";
+import mongoosePaginate from "mongoose-paginate";
 
 const userSchema = new Schema(
     {
@@ -112,4 +113,5 @@ userSchema.methods.generateRefreshToken = async function () {
 }
 
 
+userSchema.plugin(mongoosePaginate)
 export const User = mongoose.model("User", userSchema)
