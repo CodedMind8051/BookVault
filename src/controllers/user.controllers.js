@@ -10,6 +10,7 @@ import jwt from "jsonwebtoken";
 import { Borrow } from "../models/borrow.model.js"
 import mongoose from "mongoose"
 import { ReviewRating } from "../models/reviewAndrating.model.js"
+import { Book } from "../models/book.model.js"
 
 
 
@@ -122,6 +123,32 @@ const registerUser = asyncHandler(async (req, res) => {
 
 )
 
+const fetchBooksForHome = asyncHandler(async (req, res) => {
+
+    const { page } = req?.query
+
+    if (!page) {
+        throw new ApiError(400, "page number must required.", true)
+    }
+
+    const PaginateOptions = {
+        page: parseInt(page),
+        limit: 20,
+        select: "BookName Author BookImage AvgRating TotalCopies RemainingCopies Description",
+        sort: { createdAt: -1 }
+    }
+
+    const Books = await Book.paginate({}, PaginateOptions)
+
+    if (!Books) {
+        throw new ApiError(500, "Failed to fetch books for home , please try again.", true)
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { Books }, "Books fetched successfully for home page."))
+
+})
 
 const loginUser = asyncHandler(async (req, res) => {
 
@@ -285,11 +312,49 @@ const WriteReview = asyncHandler(async (req, res) => {
 
 })
 
+const fetchReviews = asyncHandler(async (req, res) => {
+    const { bookId } = req?.params
+    const { page } = req?.query
+
+    if (!page) {
+        throw new ApiError(400, "page number must required.", true)
+    }
+
+    if (!bookId || !mongoose.Types.ObjectId.isValid(bookId)) {
+        throw new ApiError(400, "Invalid book id", true)
+    }
+
+    const paginateOptions = {
+        page: parseInt(page),
+        limit: 20,
+        select: "-__v -BookId",
+        populate: {
+            path: "userId",
+            select: "userName avatarImage"
+        }
+    }
+
+
+    const Reviews = await ReviewRating.paginate({ BookId: bookId }, paginateOptions)
+
+    if (!Reviews) {
+        throw new ApiError(500, "Failed to fetch reviews for this book, please try again.", true)
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { Reviews }, "Reviews fetched successfully."))
+})
+
 const AddRating = asyncHandler(async (req, res) => {
 
     const { bookId } = req?.params
     const { rating } = req?.body
     const user = req?.user
+
+    const mongodbSession = await mongoose.startSession()
+
+    mongodbSession.startTransaction()
 
     if (!bookId || !mongoose.Types.ObjectId.isValid(bookId)) {
         throw new ApiError(400, "Invalid book id", true)
@@ -299,6 +364,15 @@ const AddRating = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Rating must be a number between 1 and 5", true)
     }
 
+    const Book = await Book.findById({ BookId: bookId }).select("-BookName -Author -Category -Description -TotalCopies -RemainingCopies -BookImage -BookImagePublicId")
+
+    if (!Book) {
+        throw new ApiError(500, "Something went wrong please try again.", false)
+    }
+
+    const OldAvgRating = Book?.AvgRating
+    const NumberOfRatings = Book?.NumberOfRatings
+
     const ExistedRating = await ReviewRating.findOne({
         $and: [
             { BookId: bookId },
@@ -307,12 +381,21 @@ const AddRating = asyncHandler(async (req, res) => {
     })
 
     if (ExistedRating) {
+
         ExistedRating.rating = rating
 
-        const savedRating = await ExistedRating.save({ validateBeforeSave: false })
+        let newAvgRating = Math.round(((OldAvgRating * NumberOfRatings) - ExistedRating.rating + rating) / NumberOfRatings)
 
-        if (!savedRating) {
-            throw new ApiError(500, "Something went wrong during rating submitting, please try again.", true)
+        Book.AvgRating = newAvgRating
+
+        const savedBook = await Book.save({ validateBeforeSave: false }, { session: mongodbSession })
+        const savedRating = await ExistedRating.save({ validateBeforeSave: false }, { session: mongodbSession })
+
+        await mongodbSession.commitTransaction()
+        mongodbSession.endSession()
+
+        if (!savedRating || !savedBook) {
+            throw new ApiError(500, "Something went wrong during rating submitting, please try again.", false)
         }
 
         return res
@@ -321,14 +404,24 @@ const AddRating = asyncHandler(async (req, res) => {
 
     }
 
+    let newAvgRating = Math.round(((OldAvgRating * NumberOfRatings) + rating) / (NumberOfRatings + 1))
+
+    Book.AvgRating = newAvgRating
+    Book.NumberOfRatings = NumberOfRatings + 1
+
+    const savedBook = await Book.save({ validateBeforeSave: false }, { session: mongodbSession })
+
     const CreatedRating = await ReviewRating.create({
         userId: user?._id,
         BookId: bookId,
         rating: rating
-    })
+    }, { session: mongodbSession })
 
-    if (!CreatedRating) {
-        throw new ApiError(500, "Something went wrong during rating submitting, please try again.", true)
+    await mongodbSession.commitTransaction()
+    mongodbSession.endSession()
+
+    if (!CreatedRating || !savedBook) {
+        throw new ApiError(500, "Something went wrong during rating submitting, please try again.", false)
     }
 
     return res
@@ -337,4 +430,4 @@ const AddRating = asyncHandler(async (req, res) => {
 
 })
 
-export { registerUser, loginUser, RenewAccessToken, fetchBorrowHistory, WriteReview, AddRating }
+export { registerUser, loginUser, RenewAccessToken, fetchBorrowHistory, WriteReview, fetchReviews, AddRating, fetchBooksForHome }

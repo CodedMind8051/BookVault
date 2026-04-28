@@ -40,6 +40,10 @@ const BookSchema = new Schema({
         min: 0,
         max: 5
     },
+    NumberOfRatings: {
+        type: Number,
+        min: 0
+    },
     BookImage: {
         type: String,
         required: true
