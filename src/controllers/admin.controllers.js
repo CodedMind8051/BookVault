@@ -182,7 +182,8 @@ const GetBorrowersList = asyncHandler(async (req, res) => {
 })
 
 const searchUser = asyncHandler(async (req, res) => {
-    const { UserInfo, page } = req?.query || req?.body
+    const { page } = req?.query
+    const { UserInfo } = req?.body
 
     if (!UserInfo || UserInfo?.toString()?.trim() === "" || !page) {
         throw new ApiError(400, "UserInfo and page are required.", true)

@@ -8,7 +8,8 @@ import { Borrow } from "../models/borrow.model.js"
 
 
 const searchBooks = asyncHandler(async (req, res) => {
-    const { BookInfo, page } = req?.query || req?.body
+    const { page } = req?.query || req?.body
+    const { BookInfo } = req?.body
 
     if (!BookInfo || BookInfo?.toString()?.trim() === "" || !page) {
         throw new ApiError(400, "BookInfo and page are required.", true)

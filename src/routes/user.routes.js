@@ -9,11 +9,10 @@ router.route("/register").post(
     upload.single("avatar"),
     registerUser
 )
-
 router.route("/login").post(loginUser)
 router.route("/RenewAccessToken").patch(RenewAccessToken)
-router.route("/borrow-history").get(AuthenticateJwtToken, fetchBorrowHistory)
 
+router.route("/borrow-history").get(AuthenticateJwtToken, fetchBorrowHistory)
 router.route("/add-review/:bookId").post(AuthenticateJwtToken, WriteReview)
 router.route("/fetch-reviews/:bookId").get(fetchReviews)
 router.route("/add-rating/:bookId").post(AuthenticateJwtToken, AddRating)
