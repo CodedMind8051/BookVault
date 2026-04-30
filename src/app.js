@@ -3,13 +3,24 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import { BaseEndPoint } from "./constants.js"
 import { DeleteLocalSaveImgFile } from "../src/utils/DeleteLocalSaveImageFile.utils.js"
+import { rateLimit } from "express-rate-limit"
 
 const app = express()
+
+
+const ratelimiter = rateLimit({
+    windowMs: 2 * 60 * 1000,
+    limit: 80,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    ipv6Subnet: 56,
+})
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
 }))
+app.use(ratelimiter)
 app.use(express.static("public"))
 app.use(express.json({ limit: "16kb" }))
 app.use(express.urlencoded({ extended: true, limit: "16kb" }))

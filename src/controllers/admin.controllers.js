@@ -181,4 +181,34 @@ const GetBorrowersList = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, { borrowers: borrowersList }, "Borrowers list fetched successfully."))
 })
 
-export { AdminAddBooks, AdminDeleteBooks, updateUserBanStatus, GetBorrowersList } 
+const searchUser = asyncHandler(async (req, res) => {
+    const { UserInfo, page } = req?.query || req?.body
+
+    if (!UserInfo || UserInfo?.toString()?.trim() === "" || !page) {
+        throw new ApiError(400, "UserInfo and page are required.", true)
+    }
+
+    const PaginateOptions = {
+        page: parseInt(page),
+        limit: 20,
+        select: "-password -refreshToken -avatarImagePublicId -isAdmin ",
+    }
+
+    const user = await User.paginate({
+        $or: [
+            { userName: { $regex: UserInfo, $options: "i" } },
+            { email: { $regex: UserInfo, $options: "i" } }
+        ]
+    },
+        PaginateOptions)
+
+    if (!user) {
+        throw new ApiError(500, "Failed to fetch user , please try again.", true)
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { user }, "Fetch user successfully."))
+})
+
+export { AdminAddBooks, AdminDeleteBooks, updateUserBanStatus, GetBorrowersList, searchUser } 

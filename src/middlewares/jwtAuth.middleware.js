@@ -3,8 +3,6 @@ import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.utils.js"
 
 
-
-
 const AuthenticateJwtToken = async (req, _, next) => {
 
     try {
@@ -31,7 +29,6 @@ const AuthenticateJwtToken = async (req, _, next) => {
         next(err)
     }
 }
-
 
 
 export { AuthenticateJwtToken }
