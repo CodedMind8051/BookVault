@@ -7,11 +7,10 @@ import { Borrow } from "../models/borrow.model.js"
 
 
 
-
 const searchBooks = asyncHandler(async (req, res) => {
     const { BookInfo, page } = req?.query || req?.body
 
-    if (!BookInfo || BookInfo?.toString()?.trim() === "" || !page ) {
+    if (!BookInfo || BookInfo?.toString()?.trim() === "" || !page) {
         throw new ApiError(400, "BookInfo and page are required.", true)
     }
 
@@ -54,6 +53,10 @@ const borrowBooks = asyncHandler(async (req, res) => {
 
     const existedBook = await Book.findById(bookId)
 
+    const mongodbSession = await mongoose.startSession()
+
+    mongodbSession.startTransaction()
+
     if (!existedBook) {
         throw new ApiError(400, "Book not found.", true)
     }
@@ -74,7 +77,7 @@ const borrowBooks = asyncHandler(async (req, res) => {
             borrowDate: new Date(),
             dueDate: dueDate,
             dueDateExtensionCount: 0
-        })
+        }, { session: mongodbSession })
 
 
 
@@ -83,7 +86,10 @@ const borrowBooks = asyncHandler(async (req, res) => {
         }
 
         user.numberOfBooksBorrowed += 1
-        await user.save({ validateBeforeSave: false })
+        await user.save({ validateBeforeSave: false }, { session: mongodbSession })
+
+        await mongodbSession.commitTransaction()
+        await mongodbSession.endSession()
 
         return res
             .status(200)
@@ -99,7 +105,10 @@ const borrowBooks = asyncHandler(async (req, res) => {
     borrowBook.status = "borrowed"
     borrowBook.dueDate.setDate(borrowBook.dueDate.getDate() + 7)
 
-    await borrowBook.save({ validateBeforeSave: false })
+    await borrowBook.save({ validateBeforeSave: false }, { session: mongodbSession })
+
+    await mongodbSession.commitTransaction()
+    await mongodbSession.endSession()
 
     return res
         .status(200)
@@ -135,14 +144,21 @@ const ReturnBook = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No active borrow found for this book.", true)
     }
 
+    const mongodbSession = await mongoose.startSession()
+    mongodbSession.startTransaction()
+
     borrowBook.returnDate = new Date()
     borrowBook.status = "returned"
 
     user.numberOfBooksBorrowed = user.numberOfBooksBorrowed > 0 ? user.numberOfBooksBorrowed - 1 : 0
 
-    await borrowBook.save({ validateBeforeSave: false })
+    await borrowBook.save({ validateBeforeSave: false }, { session: mongodbSession })
 
-    await user.save({ validateBeforeSave: false })
+    await user.save({ validateBeforeSave: false }, { session: mongodbSession })
+
+    await mongodbSession.commitTransaction()
+    await mongodbSession.endSession()
+
 
     return res
         .status(200)
